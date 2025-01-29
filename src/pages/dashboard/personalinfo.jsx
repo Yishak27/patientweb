@@ -13,6 +13,21 @@ import {
 // import { apiUtility } from "../../components/repo/api";
 import { AuthContext } from "../../contexts/auth";
 import SnackBarShow from "../../components/SnackBarShow";
+import axios from "axios";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+const updatePhonenumberAndEmail = async (data) => {
+  try {
+    const id = data.id;
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}/patient/updatePatient/${id}`
+    );
+    return response.data;
+  } catch (error) {
+    return error;
+  }
+};
 
 const PersonalInfo = () => {
   const { user } = useContext(AuthContext);
@@ -24,33 +39,17 @@ const PersonalInfo = () => {
   });
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
-  // Function to fetch current user data from the API
-  // const fetchUserData = async () => {
-  //   try {
-  //     // Replace with your API endpoint
-  //     const response = await apiUtility.get(`/user/getUser/${user.userName}`);
-  //     const data = response.data;
-  //     console.log("data", data);
-  //     if (data) {
-  //       setFormData({
-  //         userName: data.userName,
-  //         fullName: data.fullName,
-  //         email: data.email,
-  //         phoneNumber: data.phoneNumber,
-  //         department: data.department,
-  //         role: data.role,
-  //         healthCenterId: data.healthCenterId,
-  //       });
-  //     }
-  //   } catch (err) {
-  //     console.error("Failed to fetch user data:", err);
-  //   }
-  // };
+  const [theData, setTheData] = useState({
+    Email: "",
+    phoneNumber: "",
+  });
 
-  // Fetch data when the component mounts
-  // useEffect(() => {
-  //   fetchUserData();
-  // }, []);
+  const updatePhonenumberAndEmailMutation = useMutation({
+    mutationFn: updatePhonenumberAndEmail,
+    onSuccess: () => {
+      toast.success("Updated Succssfully");
+    },
+  });
 
   // // Handle password change
   const handlePasswordChange = (e) => {
@@ -61,39 +60,56 @@ const PersonalInfo = () => {
   };
 
   // Submit password change
-  // const handlePasswordSubmit = async (e) => {
-  //   e.preventDefault();
-  //   if (newPassword.newPassword !== newPassword.confirmPassword) {
-  //     setMessage("Passwords do not match.");
-  //     setError(true);
-  //     return;
-  //   }
-  //   const datatosend = {
-  //     oldPassword: newPassword.oldPassword,
-  //     newPassword: newPassword.newPassword,
-  //   };
-  //   try {
-  //     const response = await apiUtility.post(
-  //       `/user/changePassword/${user.userName}`,
-  //       datatosend
-  //     );
-  //     if (response) {
-  //       setMessage(response.message);
-  //       setError(false);
-  //       setNewPassword({
-  //         oldPassword: "",
-  //         newPassword: "",
-  //         confirmPassword: "",
-  //       });
-  //     } else {
-  //       setMessage(data.message || "Error changing password.");
-  //       setError(true);
-  //     }
-  //   } catch (err) {
-  //     setMessage("Failed to change password.");
-  //     setError(true);
-  //   }
-  // };
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (newPassword.newPassword !== newPassword.confirmPassword) {
+      setMessage("Passwords do not match.");
+      setError(true);
+      return;
+    }
+    const datatosend = {
+      oldPassword: newPassword.oldPassword,
+      newPassword: newPassword.newPassword,
+    };
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/patient/changePassword/${
+          user.PatientID
+        }`,
+        datatosend
+      );
+      if (response) {
+        setMessage(response.message);
+        setError(false);
+        setNewPassword({
+          oldPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+      } else {
+        setMessage(data.message || "Error changing password.");
+        setError(true);
+      }
+    } catch (err) {
+      console.log("error: ", err);
+      setMessage("Failed to change password.");
+      setError(true);
+    }
+  };
+
+  const emaPhChange = (e) => {
+    const { name, value } = e.target;
+    setTheData({
+      ...theData,
+      [name]: value,
+    });
+  };
+  const emailAndPhoneHandler = (e) => {
+    e.preventDefault();
+    theData.id = formData.PatientID;
+    console.log("the data: ", theData);
+    updatePhonenumberAndEmailMutation.mutate(theData);
+  };
 
   return (
     <>
@@ -191,6 +207,37 @@ const PersonalInfo = () => {
             />
           </Grid>
         </Grid>
+        <form onSubmit={emailAndPhoneHandler} className="mt-10">
+          <h1 className="text-[25px] text-gray-800">
+            Update Phone number and Email
+          </h1>
+          <Grid container spacing={3}>
+            {/* Phone Number */}
+            <Grid item xs={12} md={4}>
+              <TextField
+                name="phoneNumber"
+                label="Phone Number"
+                value={theData.phoneNumber}
+                fullWidth
+                onChange={emaPhChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                name="Email"
+                label="Email"
+                value={theData.Email}
+                fullWidth
+                onChange={emaPhChange}
+              />
+            </Grid>
+          </Grid>
+          <div className="flex justify-center mt-5">
+            <Button variant="outlined" type="submit" color="warning">
+              Update
+            </Button>
+          </div>
+        </form>
         <Typography>Additional Information</Typography>
         <Grid container spacing={3} mt={2}>
           <Grid item xs={12} md={4}>
@@ -220,10 +267,7 @@ const PersonalInfo = () => {
         </Grid>
 
         {/* Change Password Section */}
-        <form
-          // onSubmit={handlePasswordSubmit}
-          mt={5}
-        >
+        <form onSubmit={handlePasswordSubmit} mt={5}>
           <Typography variant="h5" color="textPrimary" mt={5}>
             Change Password
           </Typography>
@@ -261,8 +305,8 @@ const PersonalInfo = () => {
                 label="Confirm New Password"
                 name="confirmPassword"
                 type="password"
-                // value={newPassword.confirmPassword}
-                // onChange={handlePasswordChange}
+                value={newPassword.confirmPassword}
+                onChange={handlePasswordChange}
                 fullWidth
                 required
               />

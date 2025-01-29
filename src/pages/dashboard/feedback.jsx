@@ -16,8 +16,18 @@ import ExportTable from "../../components/ExportTable";
 import AdminTable from "../../components/AdminTable";
 import { AuthContext } from "../../contexts/auth";
 import axios from "axios";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+const getMyFeedbacks = async (id) => {
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/feedback/getfeedbackbyid/${id}`
+    );
+    return response.data;
+  } catch (error) {
+    return error;
+  }
+};
 const AddFeedBackFunc = async (data) => {
   try {
     const response = await axios.post(
@@ -31,6 +41,7 @@ const AddFeedBackFunc = async (data) => {
 };
 
 const AddNewFeedBack = ({ onClose }) => {
+  const queryClient = useQueryClient();
   const { user } = useContext(AuthContext);
   console.log("Got htererere: ", user?.PatientID);
   const [feedbackData, setFeedbackData] = useState({
@@ -44,6 +55,7 @@ const AddNewFeedBack = ({ onClose }) => {
     mutationFn: AddFeedBackFunc,
     onSuccess: () => {
       toast.success("Successfully added feedback.");
+      queryClient.invalidateQueries("myfeedbacks");
       onClose();
     },
     onError: () => {
@@ -130,17 +142,19 @@ const columns = [
   { label: "Date", field: "date" },
   { label: "Content", field: "content" },
   { label: "To", field: "toWhom" },
-  { label: "Full Name", field: "patientName" },
-  { label: "Phone Number", field: "patientPhone" },
-  { label: "Email", field: "patientEmail" },
-  { label: "Sub city", field: "patientSubCity" },
-  { label: "Woreda", field: "patientWoreda" },
-  { label: "House Number", field: "patientHouseNumber" },
-  { label: "Emergency Contact", field: "patientEmergencyContact" },
 ];
 
 const Feedback = () => {
   let data = [];
+  const { user } = useContext(AuthContext);
+  const id = user.PatientID;
+
+  const { data: myFeedbackData, isLoading: myFeedbackDataLoading } = useQuery({
+    queryKey: ["myfeedbacks", id],
+    queryFn: () => getMyFeedbacks(id),
+  });
+  console.log("the data is: ", myFeedbackData);
+
   const [feedbackModal, setFeedbackModal] = useState(false);
 
   const closeFeedbackModal = () => {
@@ -202,7 +216,7 @@ const Feedback = () => {
             </div>
             <Grid container spacing={3}>
               <Grid item xs={12}>
-                <AdminTable data={data} columns={columns} />
+                <AdminTable data={myFeedbackData?.data} columns={columns} />
               </Grid>
             </Grid>
           </Box>
