@@ -3,7 +3,7 @@ import { AuthContext } from "../../contexts/auth";
 import { toast, Toaster } from "sonner";
 import Table from "../../components/Table";
 import axios from "axios";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
   Dialog,
@@ -13,6 +13,7 @@ import {
   Grid,
   TextField,
 } from "@mui/material";
+import { CiCircleMore } from "react-icons/ci";
 
 const createAppoinment = async (appointmentData) => {
   try {
@@ -29,19 +30,22 @@ const createAppoinment = async (appointmentData) => {
 
 const updateAppointment = async (data) => {
   try {
-    const id = data.id;
     const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/appointment/updateAppointment/${id}`,
-      appointmentData
+      `${import.meta.env.VITE_API_URL}/appointment/updateAppointment/${
+        data.appointmentID
+      }`,
+      data
     );
     console.log("the response: ", response);
     return response.data;
   } catch (error) {
+    console.log("what is the error: ", error);
     return error;
   }
 };
 
 const CreateNewAppointment = ({ onClose, isOpen }) => {
+  const queryClient = useQueryClient();
   const { user } = useContext(AuthContext);
   console.log("the user: ", user);
   const [appointmentData, setAppointmentData] = useState({
@@ -65,6 +69,7 @@ const CreateNewAppointment = ({ onClose, isOpen }) => {
     mutationFn: createAppoinment,
     onSuccess: () => {
       toast.success("Created Appointment Successfully");
+      queryClient.invalidateQueries("myAppointment");
       onClose();
     },
     onError: () => {
@@ -138,6 +143,7 @@ const CreateNewAppointment = ({ onClose, isOpen }) => {
   );
 };
 const UpdateAppointment = ({ onClose, isOpen, data }) => {
+  const queryClient = useQueryClient();
   const [appointmentData, setAppointmentData] = useState(data);
 
   const changeHandler = (e) => {
@@ -152,6 +158,7 @@ const UpdateAppointment = ({ onClose, isOpen, data }) => {
     mutationFn: updateAppointment,
     onSuccess: () => {
       toast.success("update successful");
+      queryClient.invalidateQueries("myAppointment");
       onClose();
     },
     onError: () => {
@@ -176,7 +183,7 @@ const UpdateAppointment = ({ onClose, isOpen, data }) => {
             <TextField
               label="Patient Id"
               name="pateintId"
-              value={appointmentData.patientId}
+              value={appointmentData._id}
               fullWidth
               onChange={changeHandler}
             />
@@ -204,7 +211,7 @@ const UpdateAppointment = ({ onClose, isOpen, data }) => {
               label="Appointment Date"
               type="date"
               name="appointmentDate"
-              value={appointmentData.appointmentDate}
+              value={appointmentData.appointmentDate.split("T")[0]}
               fullWidth
               onChange={changeHandler}
             />
@@ -224,10 +231,13 @@ const UpdateAppointment = ({ onClose, isOpen, data }) => {
   );
 };
 
-const getMyAppointments = () => {
+const getMyAppointments = async (id) => {
+  console.log("the id: ", id);
   try {
-    const response = axios.get(
-      `${import.meta.env.VITE_API_URL}/patient/getPatient/${id}`
+    const response = await axios.get(
+      `${
+        import.meta.env.VITE_API_URL
+      }/appointment/getAppointmentByPatient/${id}`
     );
     console.log("the ress: ", response.data);
     return response.data;
@@ -267,10 +277,13 @@ const data = [
 ];
 
 const HomePage = () => {
+  const { user } = useContext(AuthContext);
+  const id = user.PatientID;
+  console.log("THE USER: ", user);
   const { data: appointmentData, isLoading: appointmentDataLoading } = useQuery(
     {
-      queryKey: ["myAppointment"],
-      queryFn: getMyAppointments,
+      queryKey: ["myAppointment", id],
+      queryFn: () => getMyAppointments(id),
     }
   );
   const [createNewAppointment, setCreateNewAppointment] = useState(false);
@@ -289,7 +302,7 @@ const HomePage = () => {
     setCreateNewAppointment(false);
   };
 
-  console.log("in the homepage.");
+  console.log("in the homepage.", appointmentData);
   return (
     <>
       <div className="mx-10 mt-20">
@@ -299,17 +312,92 @@ const HomePage = () => {
             My Appointments
           </h1>
           <div className="flex justify-end items-end">
-            <Button
+            {/* <Button
               variant="outlined"
               onClick={() => setCreateNewAppointment(true)}
               // className="text-gray-900 bg-green-400 hover:bg-green-700 hover:text-white rounded-lg text-lg p-5 h-8 ms-auto inline-flex justify-center items-center"
             >
               Create New Appointment
-            </Button>
+            </Button> */}
           </div>
         </div>
         <div>
-          <Table onEditClicked={editIsClicked} data={data} />
+          {/*  */}
+          <div className="p-8">
+            <div className="overflow-x-auto bg-white rounded-3xl p-5 border">
+              <table className="min-w-full border-collapse">
+                <thead className="">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-gray-800 font-medium">
+                      Patient Id
+                    </th>
+                    <th className="px-4 py-2 text-left text-gray-800 font-medium">
+                      Appointment ID
+                    </th>
+                    <th className="px-4 py-2 text-left text-gray-800 font-medium">
+                      Reason
+                    </th>
+                    <th className="px-4 py-2 text-left text-gray-800 font-medium">
+                      status
+                    </th>
+                    <th className="px-4 py-2 text-left text-gray-800 font-medium">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {appointmentData?.data &&
+                    appointmentData?.data.map((item, index) => (
+                      <tr key={index}>
+                        <td className="px-4 py-2 text-gray-700 font-medium">
+                          {item._id}
+                        </td>
+                        <td className="px-4 py-2 text-gray-500">
+                          {item.appointmentID}
+                        </td>
+                        <td className="px-4 py-2 text-gray-500">
+                          {item.reason}
+                        </td>
+                        <td className="px-4 py-2 text-gray-500">
+                          {item.status}
+                        </td>
+                        <td className="px-4 py-2 text-gray-500">
+                          <button
+                            className="px-2 py-1 text-gray-500 hover:text-gray-700 text-xl"
+                            onClick={() => editIsClicked(item)}
+                          >
+                            <CiCircleMore />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 flex justify-between items-center">
+              <button className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">
+                Previous
+              </button>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((page) => (
+                  <button
+                    key={page}
+                    className={`px-3 py-1 text-sm rounded-md ${
+                      page === 3
+                        ? "bg-blue-500 text-white"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">
+                Next
+              </button>
+            </div>
+          </div>
+          {/*  */}
         </div>
       </div>
       {editAppointment && (
