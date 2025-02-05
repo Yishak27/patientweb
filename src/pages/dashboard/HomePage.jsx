@@ -235,9 +235,15 @@ const getMyAppointments = async (id) => {
   console.log("the id: ", id);
   try {
     const response = await axios.get(
-      `${
-        import.meta.env.VITE_API_URL
-      }/appointment/getAppointmentByPatient/${id}`
+      `${import.meta.env.VITE_API_URL
+      }/appointment/getAppointmentByPatient/${id}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache', // Disable caching
+          Pragma: 'no-cache', // Fallback for HTTP/1.0
+        },
+      }
     );
     console.log("the ress: ", response.data);
     return response.data;
