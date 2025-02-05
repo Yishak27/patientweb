@@ -145,13 +145,13 @@ const Signin = () => {
               control={<Checkbox />}
               label="Keep me signed in"
             />
-            <Typography
+            {/* <Typography
               variant="body2"
               sx={{ color: "warning.main", cursor: "pointer" }}
               onClick={(e) => navigate("/resetPassword")}
             >
               Forgot password?
-            </Typography>
+            </Typography> */}
           </Box>
           {error && (
             <Typography
@@ -174,9 +174,9 @@ const Signin = () => {
           </Button>
           {/* <Link to="/dashboard">Login</Link> */}
         </form>
-        <Typography variant="body2" className="float-end" sx={{ mt: 3 }}>
+        {/* <Typography variant="body2" className="float-end" sx={{ mt: 3 }}>
           Need help?
-        </Typography>
+        </Typography> */}
       </Paper>
     </Container>
   );
